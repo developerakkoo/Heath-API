@@ -4,16 +4,29 @@ const tryCatch = require("../middleware/tryCatch");
 
 // User Register..
 exports.register = tryCatch(async (req, res, next) => {
-  const { name, email, password, mobile } = req.body;
+  const {
+    name,
+    email,
+    phone,
+    password,
+    gender,
+    height,
+    bloodGroup,
+    address,
+    profilePicture,
+    walletBalance,
+  } = req.body;
   const user = await User.create({
     name,
     email,
+    phone,
     password,
-    mobile,
-    avatar: {
-      public_id: "This is avatar",
-      url: "fjdsfo",
-    },
+    gender,
+    height,
+    bloodGroup,
+    address,
+    profilePicture,
+    walletBalance,
   });
   res.status(201).json({
     success: true,
@@ -21,6 +34,14 @@ exports.register = tryCatch(async (req, res, next) => {
     user,
   });
 });
+
+// Login user By Mobile Number..
+exports.login = tryCatch(async (req, res, next) => {});
+
+// Logout..
+exports.logout = tryCatch(async (req, res, next) => {});
+
+
 
 // Get User Details By ID..
 exports.getUserDetails = tryCatch(async (req, res, next) => {
@@ -48,45 +69,35 @@ exports.getAllUser = tryCatch(async (req, res, next) => {
 
 // update User By ID..
 exports.updateUser = tryCatch(async (req, res, next) => {
-  const { name, email, mobile, avatar } = req.body;
-  const userId = req.params.id;
-  const updateData = { name, email, mobile };
-  if (avatar) {
-    if (!avatar.public_id || !avatar.url) {
-      return next(
-        new ErrorHandler("Both public_id and url are required for avatar.", 400)
-      );
-    }
-    updateData.avatar = avatar;
+  let updateUserProfile = await User.findById(req.params.id);
+  if (!updateUserProfile) {
+    return next(new ErrorHandler("User Not Found"));
   }
-  const updateUser = await User.findByIdAndUpdate(userId, updateData, {
+  updateUserProfile = await User.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
-    runValidators: true,
+    runValidators: true, 
+    useFindAndModify: false,
   });
-  if (!updateUser) {
-    return next(new ErrorHandler("User not found", 404));
-  }
 
   res.status(200).json({
     success: true,
     message: "Profile updated successfully.",
-    user: updateUser,
+    user: updateUserProfile,
   });
 });
 
 // delete User By ID..
-exports.deleteUser = tryCatch(async (req, res, next) => { 
-    const { id } = req.params;
-    const user = await User.findById(id);
-    if (!user) {
-      return next(
-        new ErrorHandler(`User does not exits with Id: ${req.params.id}`)
-      );
-    }
-    await User.deleteOne({ _id: id });
-    res.status(200).json({
-      success: true,
-      message: "User deleted Succesfuly",
-    });
+exports.deleteUser = tryCatch(async (req, res, next) => {
+  const { id } = req.params;
+  const user = await User.findById(id);
+  if (!user) {
+    return next(
+      new ErrorHandler(`User does not exits with Id: ${req.params.id}`)
+    );
+  }
+  await User.deleteOne({ _id: id });
+  res.status(200).json({
+    success: true,
+    message: "User deleted Succesfuly",
   });
-
+});

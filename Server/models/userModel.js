@@ -4,45 +4,57 @@ const validator = require("validator");
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
+    required: true,
   },
   email: {
     type: String,
-    required: [true, "Please Enter Email"],
     unique: true,
-    validator: [validator.isEmail, "Please Enter valid Email"],
+    required: true,
+  },
+  phone: {
+    type: String,
+    unique: true,
+    required: true,
   },
   password: {
     type: String,
-    required: [true, "Please Enter password"],
-    minLength: [8, "Password should be greater than 8 characters"],
-    select: false,
-    validate: {
-      validator: function (value) {
-        return /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.*[0-9]).{8,}$/.test(value);
-      },
-      message:
-        "Password must contain at least one uppercase letter, one symbol, and one number",
-    },
+    required: true,
   },
-  avatar: {
-    public_id: {
-      type: String,
-      required: true,
-    },
-    url: {
-      type: String,
-      required: true,
-    },
+  gender: {
+    type: String,
+    enum: ["Male", "Female", "Other"],
+    required: false,
   },
-  mobile: {
+  height: {
     type: Number,
-    validate: {
-      validator: function (value) {
-        return /^[0-9]{10}$/.test(value);
-      },
-      message: (props) => `${props.value} is not equal to 10`,
-    },
-    required: [true, "Number field is required"],
+    required: false,
+  },
+  bloodGroup: {
+    type: String,
+    enum: ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"],
+    required: false,
+  },
+  address: {
+    flat: String,
+    building: String,
+    addressLine: String,
+    pincode: String,
+  },
+  profilePicture: {
+    type: String,
+    default: null,
+  },
+  walletBalance: {
+    type: Number,
+    default: 0,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
   },
 });
 
