@@ -55,13 +55,13 @@ exports.login = tryCatch(async (req, res, next) => {
   // Find user or create a new one if not found
   let user = await User.findOne({ phone });
 
-  // if (!user) {
-  //   user = await User.create({ phone });
-  // }
-
   if (!user) {
-    return next(new ErrorHandler("Phone Not found", 401));
+    user = await User.create({ phone });
   }
+
+  // if (!user) {
+  //   return next(new ErrorHandler("Phone Not found", 401));
+  // }
 
   // Save the user to ensure the reference token is stored
   await user.save();
@@ -70,7 +70,17 @@ exports.login = tryCatch(async (req, res, next) => {
 });
 
 // Logout..
-exports.logout = tryCatch(async (req, res, next) => {});
+exports.logout = tryCatch(async (req, res, next) => {
+  res.cookie("token",null,{
+    expires:new Date(Date.now()),
+    httpOnly:true
+  })
+
+  res.status(200).json({
+    success:true,
+    message:"LogOut"
+  })
+});
 
 // Get User Details By ID..
 exports.getUserDetails = tryCatch(async (req, res, next) => {
