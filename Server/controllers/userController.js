@@ -1,6 +1,7 @@
 const User = require("../models/userModel");
 const ErrorHandler = require("../utils/ErrorHandling");
 const tryCatch = require("../middleware/tryCatch");
+const sentToken = require("../utils/sendTokens");
 
 // User Register..
 exports.register = tryCatch(async (req, res, next) => {
@@ -16,6 +17,8 @@ exports.register = tryCatch(async (req, res, next) => {
     profilePicture,
     walletBalance,
   } = req.body;
+
+  // Create User
   const user = await User.create({
     name,
     email,
@@ -28,20 +31,46 @@ exports.register = tryCatch(async (req, res, next) => {
     profilePicture,
     walletBalance,
   });
-  res.status(201).json({
-    success: true,
-    message: "User registered successfully.",
-    user,
-  });
-});
 
-// Login user By Mobile Number..
-exports.login = tryCatch(async (req, res, next) => {});
+  // Generate JWT and Reference Tokens
+  const jwtToken = user.getJWTToken();
+  const referenceToken = user.getReferenceToken();
+
+  await user.save();
+
+  sentToken(user, 200, res);
+ });
+
+// Login user by Mobile Number
+exports.login = tryCatch(async (req, res, next) => {
+  const { phone } = req.body;
+
+  if (!phone) {
+    return res.status(400).json({
+      success: false,
+      message: "Phone number is required.",
+    });
+  }
+
+  // Find user or create a new one if not found
+  let user = await User.findOne({ phone });
+
+  // if (!user) {
+  //   user = await User.create({ phone });
+  // }
+
+  if (!user) {
+    return next(new ErrorHandler("Phone Not found", 401));
+  }
+
+  // Save the user to ensure the reference token is stored
+  await user.save();
+
+  sentToken(user, 200, res);
+});
 
 // Logout..
 exports.logout = tryCatch(async (req, res, next) => {});
-
-
 
 // Get User Details By ID..
 exports.getUserDetails = tryCatch(async (req, res, next) => {
@@ -75,7 +104,7 @@ exports.updateUser = tryCatch(async (req, res, next) => {
   }
   updateUserProfile = await User.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
-    runValidators: true, 
+    runValidators: true,
     useFindAndModify: false,
   });
 
