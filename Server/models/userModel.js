@@ -59,6 +59,9 @@ const userSchema = new mongoose.Schema({
     addressLine: String,
     pincode: String,
   },
+  emergencyContactNumber:{
+    type:Number,
+  },
   profilePicture: {
     type: String,
     default: null,
@@ -74,6 +77,10 @@ const userSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now,
+  },
+  referenceToken: {
+    type: String,
+    default: null,
   },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
@@ -97,9 +104,10 @@ userSchema.methods.getJWTToken = function () {
 };
 
 // Reference Token Generate
-userSchema.methods.getReferenceToken = function () {
+userSchema.methods.getReferenceToken =async function () {
   const referenceToken = crypto.randomBytes(32).toString("hex");
   this.referenceToken = referenceToken;
+  await this.save();
   return referenceToken;
 };
 
