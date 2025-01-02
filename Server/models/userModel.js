@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema({
       },
       message: (props) => `${props.value} is not equal to 10`,
     },
-    required: [true, "Number field is required"],
+    // required: [true, "Number field is required"],
   },
   password: {
     type: String,
@@ -42,7 +42,6 @@ const userSchema = new mongoose.Schema({
   gender: {
     type: String,
     enum: ["Male", "Female", "Other"],
-    required: false,
   },
   height: {
     type: Number,
@@ -50,7 +49,6 @@ const userSchema = new mongoose.Schema({
   },
   bloodGroup: {
     type: String,
-    enum: ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"],
     required: false,
   },
   address: {

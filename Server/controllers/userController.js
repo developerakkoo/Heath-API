@@ -34,7 +34,7 @@ exports.register = tryCatch(async (req, res, next) => {
 
   // Generate JWT and Reference Tokens
   const jwtToken = user.getJWTToken();
-  const referenceToken = user.getReferenceToken();
+  // const referenceToken = user.getReferenceToken();
 
   await user.save();
 
