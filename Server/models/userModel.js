@@ -1,72 +1,24 @@
 const mongoose = require("mongoose");
-const validator = require("validator");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const validator = require("validator");
 
-const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: false,
-  },
-  email: {
-    type: String,
-    required: [false, "Please Enter Email"],
-    unique: true,
-    validate: [validator.isEmail, "Please valid Email"],
-  },
+
+const phoneUserSchema = new mongoose.Schema({
   phone: {
-    type: String,
-    unique: true,
-    validate: {
-      validator: function (value) {
-        return /^[0-9]{10}$/.test(value);
-      },
-      message: (props) => `${props.value} is not equal to 10`,
+  type: Number,
+  validate: {
+    validator: function (value) {
+      return value.toString().length === 10;
     },
-    // required: [true, "Number field is required"],
+    message: (props) => `${props.value} is not a valid 10-digit phone number`,
   },
-  password: {
-    type: String,
-    required: [false, "Please Enter password"],
-    minLength: [8, "Password should be greater than 8 characters"],
-    select: false,
-    validate: {
-      validator: function (value) {
-        return /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.*[0-9]).{8,}$/.test(value);
-      },
-      message:
-        "Password must contain at least one uppercase letter, one symbol, and one number",
-    },
-  },
-  gender: {
-    type: String,
-    enum: ["Male", "Female", "Other"],
-  },
-  height: {
+  required: [true, "Phone number field is required"],
+},
+  otp: {
     type: Number,
     required: false,
-  },
-  bloodGroup: {
-    type: String,
-    required: false,
-  },
-  address: {
-    flat: String,
-    building: String,
-    addressLine: String,
-    pincode: String,
-  },
-  emergencyContactNumber:{
-    type:Number,
-  },
-  profilePicture: {
-    type: String,
-    default: null,
-  },
-  walletBalance: {
-    type: Number,
-    default: 0,
   },
   createdAt: {
     type: Date,
@@ -80,19 +32,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
-  resetPasswordToken: String,
-  resetPasswordExpire: Date,
-});
-
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
-    next();
-  }
-  this.password = await bcrypt.hash(this.password, 10);
 });
 
 // JWT Token Generate
-userSchema.methods.getJWTToken = function () {
+phoneUserSchema.methods.getJWTToken = function () {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET is not defined in environment variables");
   }
@@ -102,11 +45,11 @@ userSchema.methods.getJWTToken = function () {
 };
 
 // Reference Token Generate
-userSchema.methods.getReferenceToken =async function () {
+phoneUserSchema.methods.getReferenceToken = async function () {
   const referenceToken = crypto.randomBytes(32).toString("hex");
   this.referenceToken = referenceToken;
   await this.save();
   return referenceToken;
 };
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model("PhoneUser", phoneUserSchema);

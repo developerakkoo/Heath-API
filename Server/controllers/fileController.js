@@ -5,6 +5,7 @@ const fileUpload = require("../models/FileUploadModel");
 const fs = require("fs");
 const path = require("path");
 
+
 // Upload files handler..
 exports.uploadFile = tryCatch(async (req, res, next) => {
   const userId = req.user?.id;
@@ -71,11 +72,13 @@ exports.getUserFiles = tryCatch(async (req, res, next) => {
 // retrive all files
 exports.getAllFiles = tryCatch(async (req, res, next) => {
   const allFiles = await fileUpload.find();
+
   if (!allFiles || allFiles === 0) {
     return next(new ErrorHandler("No files found", 404));
   }
   res.status(200).json({
     success: true,
+    fileCount:allFiles.length,
     files: allFiles,
   });
 });
