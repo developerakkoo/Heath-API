@@ -7,6 +7,8 @@ const {
   getAppointmentsForDoctors,
   rescheduleAppointment,
   updateAppointmentStatus,
+  getSuccessfulCompletedAppointments,
+  manageDailyAppointments,
 } = require("../controllers/appointmentController");
 const router = express.Router();
 
@@ -33,5 +35,13 @@ router
 router
   .route("/put/update-status/:appointmentId")
   .put(IsAuthenticatedUser, updateAppointmentStatus);
+
+router
+  .route("/get/total-patients/:docId")
+  .get(IsAuthenticatedUser, getSuccessfulCompletedAppointments);
+
+// router
+//   .route("/get/daily-appointments/:docId")
+//   .get(IsAuthenticatedUser, manageDailyAppointments);
 
 module.exports = router;

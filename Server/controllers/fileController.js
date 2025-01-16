@@ -5,7 +5,6 @@ const fileUpload = require("../models/FileUploadModel");
 const fs = require("fs");
 const path = require("path");
 
-
 // Upload files handler..
 exports.uploadFile = tryCatch(async (req, res, next) => {
   const userId = req.user?.id;
@@ -41,7 +40,11 @@ exports.uploadFile = tryCatch(async (req, res, next) => {
 exports.deleteFile = tryCatch(async (req, res, next) => {
   const { fileName } = req.params;
   const filePath = path.join(__dirname, "..", "public", "uploads", fileName);
-
+  const fileRecord = await fileUpload.findOneAndDelete({ fileName });
+  if (!fileRecord) {
+    return next(new ErrorHandler("File not found in database.", 404));
+  }
+  // await fileUpload.deleteOne({ fileName });
   await fs.unlink(filePath, (err) => {
     if (err) {
       // If an error occurs (e.g., file not found)
@@ -60,7 +63,7 @@ exports.deleteFile = tryCatch(async (req, res, next) => {
 exports.getUserFiles = tryCatch(async (req, res, next) => {
   const userId = req.user?.id;
   const userFile = await fileUpload.find({ userId });
-  if (!userFile || userFile === 0) {
+  if (!userFile || userFile.length === 0) {
     return next(new ErrorHandler("No file Found for this user", 404));
   }
   res.status(200).json({
@@ -78,7 +81,7 @@ exports.getAllFiles = tryCatch(async (req, res, next) => {
   }
   res.status(200).json({
     success: true,
-    fileCount:allFiles.length,
+    fileCount: allFiles.length,
     files: allFiles,
   });
 });

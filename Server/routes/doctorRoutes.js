@@ -1,4 +1,5 @@
 const express = require("express");
+const upload = require("../utils/multer")
 const { IsAuthenticatedUser } = require("../middleware/auth");
 const {
   doctorRegister,
@@ -12,6 +13,7 @@ const {
 } = require("../controllers/doctorController");
 const router = express.Router();
 
+// router.route("/post/doctor-register").post(upload.single('image'),doctorRegister);
 router.route("/post/doctor-register").post(doctorRegister);
 router.route("/put/update-doctor/:id").put(updateDoctor);
 router.route("/get/doctor/:id").get(getDoctor);

@@ -58,6 +58,10 @@ const doctorSchema = new mongoose.Schema({
     type: Number,
     default:0
   },
+  patients:{
+    type:Number,
+    default :0
+  },
   totalLikes: {
     type: Number,
     default:0

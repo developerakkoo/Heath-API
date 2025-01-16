@@ -19,8 +19,19 @@ exports.doctorRegister = tryCatch(async (req, res, next) => {
     slots_booked = [],
   } = req.body;
 
+  // let imagePath = '';
+  // if (req.file) {
+  //   imagePath = `/uploads/${req.file.filename}`; // Construct the path to the uploaded file
+  // } else {
+  //   return res.status(400).json({
+  //     success: false,
+  //     message: 'Profile picture is required.',
+  //   });
+  // }
+
   const doctor = await Doctors.create({
     name,
+    // image:imagePath,
     image,
     speciality,
     education,

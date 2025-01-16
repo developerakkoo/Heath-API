@@ -2,6 +2,7 @@ const Appointment = require("../models/appointmentsModel");
 const Doctor = require("../models/doctorModel");
 const ErrorHandler = require("../utils/ErrorHandling");
 const tryCatch = require("../middleware/tryCatch");
+const moment = require("moment");
 
 // Book Appointment..
 exports.bookAppointment = tryCatch(async (req, res, next) => {
@@ -188,7 +189,7 @@ exports.updateAppointmentStatus = tryCatch(async (req, res, next) => {
   }
   appointment.status = status;
   appointment.updatedAt = Date.now();
-  
+
   await appointment.save();
 
   res.status(200).json({
@@ -196,3 +197,100 @@ exports.updateAppointmentStatus = tryCatch(async (req, res, next) => {
     appointment,
   });
 });
+
+// Count the successfully completed Appointments Count and update in Doctor patient schems..
+exports.getSuccessfulCompletedAppointments = tryCatch(
+  async (req, res, next) => {
+    const { docId } = req.params;
+    const countPatient = await Appointment.countDocuments({
+      doctor: docId,
+      status: "Completed",
+    });
+    await Doctor.findByIdAndUpdate(
+      docId,
+      { patients: countPatient },
+      { new: true, runValidators: true }
+    );
+    res.status(200).json({
+      success: true,
+      totalPatients: countPatient,
+    });
+  }
+);
+
+
+
+// Doctor get his daily Appointments..
+/*
+exports.manageDailyAppointments = tryCatch( async (req, res, next) => {
+    const { docId } = req.params;
+
+    // Find the doctor document
+    const doctor = await Doctor.findById(docId);
+
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found",
+      });
+    }
+
+    // Check if 24 hours have passed since the last reset
+    const timeDifference = moment().diff(moment(doctor.lastUpdated), 'hours');
+
+    if (timeDifference >= 24) {
+      // Reset daily count and patientsAttended after 24 hours
+      doctor.dailyAppointmentsCount = 0;
+      doctor.patientsAttended = 0; // Reset patients attended at the start of the new day
+      doctor.lastUpdated = Date.now(); // Update the lastUpdated timestamp
+    }
+
+    // Count the number of completed appointments for today (excluding cancelled ones)
+    const dailyAppointments = await Appointment.countDocuments({
+      doctor: docId,
+      date: { $gte: moment().startOf("day").toDate() },
+      status: ["Completed","Pending"]// Only count completed appointments
+    });
+
+    // Update the dailyAppointmentsCount and patientsAttended
+    doctor.dailyAppointmentsCount = dailyAppointments;
+    doctor.patientsAttended = dailyAppointments; // Directly set this to the daily completed count
+
+    // Save the updated doctor document (only if there were changes)
+    await doctor.save();
+
+    // Handle appointment cancellation if any
+    if (req.body.appointmentId && req.body.status === "Cancelled") {
+      const appointment = await Appointment.findById(req.body.appointmentId).populate('doctor');
+
+      if (!appointment || appointment.status === "Cancelled") {
+        return res.status(404).json({
+          success: false,
+          message: "Appointment not found or already cancelled",
+        });
+      }
+
+      // Update appointment status to cancelled
+      appointment.status = "Cancelled";
+      await appointment.save();
+
+      // Decrease the daily count of appointments for the doctor
+      doctor.dailyAppointmentsCount = Math.max(0, doctor.dailyAppointmentsCount - 1);
+
+      // Recalculate the patientsAttended (only decrease if it's greater than 0)
+      doctor.patientsAttended = Math.max(0, doctor.patientsAttended - 1);
+
+      // Save the updated doctor document after cancellation
+      await doctor.save();
+    }
+
+    // Return the daily count and total patients attended
+    res.status(200).json({
+      success: true,
+      dailyAppointmentsCount: doctor.dailyAppointmentsCount,
+      patientsAttended: doctor.patientsAttended,
+    });
+  }
+);
+
+*/
