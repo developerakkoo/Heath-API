@@ -2,7 +2,6 @@ const Appointment = require("../models/appointmentsModel");
 const Doctor = require("../models/doctorModel");
 const ErrorHandler = require("../utils/ErrorHandling");
 const tryCatch = require("../middleware/tryCatch");
-const moment = require("moment");
 
 // Book Appointment..
 exports.bookAppointment = tryCatch(async (req, res, next) => {
@@ -218,8 +217,6 @@ exports.getSuccessfulCompletedAppointments = tryCatch(
   }
 );
 
-
-
 // Doctor get his daily Appointments..
 /*
 exports.manageDailyAppointments = tryCatch( async (req, res, next) => {
@@ -294,3 +291,125 @@ exports.manageDailyAppointments = tryCatch( async (req, res, next) => {
 );
 
 */
+
+// To check if a doctor is available for a specific date or time slot..
+exports.checkDoctorAvailability = tryCatch(async (req, res, next) => {
+  const { doctorId } = req.params; // Get doctorId from URL params
+  const { date, timeSlots } = req.query;
+
+  // Validate required inputs
+  if (!doctorId || !date || !timeSlots) {
+    return next(
+      new ErrorHandler("Doctor ID, date, and time slots are required.", 400)
+    );
+  }
+
+  const formattedDate = new Date(date);
+
+  // Find the doctor by ID
+  const doctor = await Doctor.findById(doctorId).select("availableSlots");
+  if (!doctor) {
+    return next(new ErrorHandler("Doctor not found.", 404));
+  }
+
+  // Check if the doctor has any available slots
+  if (!doctor.availableSlots || !Array.isArray(doctor.availableSlots)) {
+    return res.status(200).json({
+      success: true,
+      available: false,
+      message: "No slots available for this doctor.",
+    });
+  }
+
+  // Find the slot for the requested date
+  const slotForDate = doctor.availableSlots.find(
+    (s) => s.date.toISOString().split("T")[0] === formattedDate.toISOString().split("T")[0]
+  );
+
+  if (!slotForDate) {
+    return res.status(200).json({
+      success: true,
+      available: false,
+      message: "Doctor is not available on this date.",
+    });
+  }
+
+  // Check if the requested time slot is available
+  const isAvailable = slotForDate.timeSlots.includes(timeSlots);
+
+  return res.status(200).json({
+    success: true,
+    available: isAvailable,
+    message: isAvailable
+      ? "Doctor is available for the specified time slot."
+      : "Doctor is not available for the specified time slot.",
+  });
+});
+
+
+// check doctors available for a specific date or time slot..
+exports.checkDoctorsAvailability = tryCatch(async (req, res, next) => {
+  const { date, timeSlots } = req.query;
+
+  // Validate required inputs
+  if (!date || !timeSlots) {
+    return next(
+      new ErrorHandler("Date and time slots are required.", 400)
+    );
+  }
+
+  const formattedDate = new Date(date);
+
+  // Parse the timeSlots (handling ranges)
+  const timeSlotRequested = timeSlots.trim();
+
+  // Find all doctors who have slots available for the specified date
+  const doctors = await Doctor.find({ "availableSlots.date": { $eq: formattedDate } });
+
+  if (doctors.length === 0) {
+    return res.status(200).json({
+      success: true,
+      available: false,
+      message: "No doctors available on this date.",
+    });
+  }
+
+  // Initialize an array to store available doctors
+  const availableDoctors = [];
+
+  // Loop through doctors to check if they are available at the requested time slots
+  for (const doctor of doctors) {
+    // Find the slot for the requested date
+    const slotForDate = doctor.availableSlots.find(
+      (s) => s.date.toISOString().split("T")[0] === formattedDate.toISOString().split("T")[0]
+    );
+
+    // If slot for date exists, check if the requested time slot is available
+    if (slotForDate && slotForDate.timeSlots.includes(timeSlotRequested)) {
+      availableDoctors.push({
+        doctorId: doctor._id,
+        name: doctor.name,
+        speciality: doctor.speciality,
+        available: true,
+      });
+    }
+  }
+
+  // If no doctors are available
+  if (availableDoctors.length === 0) {
+    return res.status(200).json({
+      success: true,
+      available: false,
+      message: "No doctors available for the specified time slot.",
+    });
+  }
+
+  // Return the available doctors
+  return res.status(200).json({
+    success: true,
+    available: true,
+    availableDoctors: availableDoctors,
+  });
+});
+
+

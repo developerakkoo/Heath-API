@@ -48,6 +48,12 @@ const doctorSchema = new mongoose.Schema({
       required: true,
     },
   },
+  availableSlots: [
+    {
+      date: { type: Date, required: true },
+      timeSlots: [{ type: String, required: true }], // Time slots when the doctor is available
+    },
+  ],
   slots_booked: [
     {
       date: { type: Date, required: true },

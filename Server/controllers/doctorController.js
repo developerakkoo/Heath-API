@@ -3,6 +3,7 @@ const ErrorHandler = require("../utils/ErrorHandling");
 const tryCatch = require("../middleware/tryCatch");
 const UserProfile = require("../models/userProfile");
 const ApiFeatures = require("../utils/ApiFeatures");
+const Appointment = require("../models/appointmentsModel");
 
 // Doctor Register..
 exports.doctorRegister = tryCatch(async (req, res, next) => {
@@ -13,10 +14,10 @@ exports.doctorRegister = tryCatch(async (req, res, next) => {
     education,
     experience,
     about,
-    available,
+    // available,
     fees,
     durations,
-    slots_booked = [],
+    // slots_booked = [],
   } = req.body;
 
   // let imagePath = '';
@@ -37,14 +38,50 @@ exports.doctorRegister = tryCatch(async (req, res, next) => {
     education,
     experience,
     about,
-    available,
+    // available,
     fees,
     durations,
-    slots_booked
+    // slots_booked,
   });
   res.status(201).json({
     success: true,
     message: "Doctor Register Successfully",
+    doctor,
+  });
+});
+
+// Create Available Slots..
+exports.createAvailableSlots = tryCatch(async (req, res, next) => {
+  const { doctorId, availableSlots } = req.body;
+
+  // Validate input
+  if (!doctorId || !Array.isArray(availableSlots) || availableSlots.length === 0) {
+    return next(
+      new ErrorHandler("doctorId and availableSlots are required.", 400)
+    );
+  }
+
+  // Find the doctor by ID
+  const doctor = await Doctors.findById(doctorId);
+
+  if (!doctor) {
+    return next(new ErrorHandler("Doctor not found.", 404));
+  }
+
+  // Add the new available slots
+  availableSlots.forEach((slot) => {
+    doctor.availableSlots.push({
+      date: new Date(slot.date),
+      timeSlots: [...new Set(slot.timeSlots)], // Ensure unique time slots
+    });
+  });
+
+  // Save the updated doctor profile
+  await doctor.save();
+
+  res.status(201).json({
+    success: true,
+    message: "Doctor's available slots created successfully.",
     doctor,
   });
 });
@@ -235,3 +272,5 @@ exports.deleteReview = tryCatch(async (req, res, next) => {
     message: "Review Deleted Successfully",
   });
 });
+
+
