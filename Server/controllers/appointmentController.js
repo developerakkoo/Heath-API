@@ -9,12 +9,14 @@ exports.bookAppointment = tryCatch(async (req, res, next) => {
 
   if (!doctorId || !patientId || !date || !timeSlot || !appointmentType) {
     return next(
-      new ErrorHandler("All fields are required to book appointment", 400)
+      new ErrorHandler("All fields are required to book an appointment", 400)
     );
   }
+
+  // Find the doctor by ID
   const doctor = await Doctor.findById(doctorId);
   if (!doctor) {
-    return next(new ErrorHandler("Doctor Not Found", 400));
+    return next(new ErrorHandler("Doctor not found", 400));
   }
 
   if (!doctor.available) {
@@ -22,19 +24,43 @@ exports.bookAppointment = tryCatch(async (req, res, next) => {
       new ErrorHandler("Doctor is currently unavailable for appointments", 400)
     );
   }
-  const isSlotBooked = doctor.slots_booked.some(
+
+  // Find the available slot for the given date and time slot
+  const availableSlot = doctor.availableSlots.find(
     (slot) =>
-      slot.date.toISOString() === new Date(date).toISOString() &&
+      slot.date.toISOString().split("T")[0] === new Date(date).toISOString().split("T")[0] &&
       slot.timeSlots.includes(timeSlot)
   );
-  if (isSlotBooked) {
+
+  if (!availableSlot) {
     return next(
-      new ErrorHandler("The selected time slot is already booked", 400)
+      new ErrorHandler("The selected time slot is not available", 400)
     );
   }
+
+  // Remove the slot from availableSlots
+  availableSlot.timeSlots = availableSlot.timeSlots.filter(
+    (slot) => slot !== timeSlot
+  );
+
+  // If no time slots left for that date, remove the date from availableSlots
+  if (availableSlot.timeSlots.length === 0) {
+    doctor.availableSlots = doctor.availableSlots.filter(
+      (slot) => slot.date.toISOString() !== availableSlot.date.toISOString()
+    );
+  }
+
+  // Add the slot to slots_booked
+  doctor.slots_booked.push({
+    date: new Date(date),
+    timeSlots: [timeSlot],
+  });
+
+  // Calculate doctor fees based on appointment type
   const doctorFees =
     appointmentType === "Audio" ? doctor.fees.audio : doctor.fees.video;
 
+  // Create the appointment record
   const appointment = await Appointment.create({
     doctor: doctorId,
     patient: patientId,
@@ -43,11 +69,10 @@ exports.bookAppointment = tryCatch(async (req, res, next) => {
     appointmentType,
     doctorFees,
   });
-  doctor.slots_booked.push({
-    date: new Date(date),
-    timeSlots: [timeSlot],
-  });
+
+  // Save the updated doctor information
   await doctor.save();
+
   res.status(200).json({
     success: true,
     message: "Appointment booked successfully",
@@ -56,30 +81,33 @@ exports.bookAppointment = tryCatch(async (req, res, next) => {
 });
 
 // cancle cancelAppointment
-exports.cancleAppointment = tryCatch(async (req, res, next) => {
+exports.cancelAppointment = tryCatch(async (req, res, next) => {
   const { appointmentId } = req.params;
-  const appointment = await Appointment.findById(appointmentId).populate(
-    "doctor"
-  );
+  const appointment = await Appointment.findById(appointmentId).populate("doctor");
 
   if (!appointment) {
     return next(new ErrorHandler("Appointment Not Found", 400));
   }
+
   if (appointment.status === "Cancelled") {
     return next(new ErrorHandler("Appointment already Cancelled", 400));
   }
+
   if (appointment.status === "Completed") {
     return next(
       new ErrorHandler("Completed appointments cannot be cancelled", 400)
     );
   }
+
+  // Update appointment status to Cancelled
   appointment.status = "Cancelled";
   await appointment.save();
 
-  // Release the time slot for the doctor
+  // Get the doctor and the appointment details
   const doctor = appointment.doctor;
   const { date, timeSlot } = appointment;
 
+  // Remove the cancelled slot from the slots_booked array
   doctor.slots_booked = doctor.slots_booked.map((slot) => {
     if (slot.date.toISOString() === date.toISOString()) {
       slot.timeSlots = slot.timeSlots.filter(
@@ -88,14 +116,33 @@ exports.cancleAppointment = tryCatch(async (req, res, next) => {
     }
     return slot;
   });
-  // Save the doctor document
+
+  // Add the cancelled time slot back to availableSlots
+  const availableSlot = doctor.availableSlots.find(
+    (slot) => slot.date.toISOString() === date.toISOString()
+  );
+
+  if (availableSlot) {
+    // If the slot for the date exists, add the cancelled time slot back
+    availableSlot.timeSlots.push(timeSlot);
+  } else {
+    // If no available slot exists for the date, create a new one
+    doctor.availableSlots.push({
+      date: new Date(date),
+      timeSlots: [timeSlot],
+    });
+  }
+
+  // Save the updated doctor document
   await doctor.save();
+
   res.status(200).json({
     success: true,
-    message: "Appointment cancelled successfully",
+    message: "Appointment cancelled successfully and time slot made available",
     appointment,
   });
 });
+
 
 // fetch all appointments for a patient..
 exports.getAppointmentsForPatient = tryCatch(async (req, res, next) => {

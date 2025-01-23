@@ -29,5 +29,8 @@ app.use("/api/v1", doctor);
 const appointment = require("./routes/appointmentRoutes");
 app.use("/api/v1", appointment);
 
+const medicines = require("./routes/medicinRoutes.js");
+app.use("/api/v1", medicines)
+
 app.use(errorMiddleware);
 module.exports = app;

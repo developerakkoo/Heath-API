@@ -2,7 +2,7 @@ const express = require("express");
 const { IsAuthenticatedUser } = require("../middleware/auth");
 const {
   bookAppointment,
-  cancleAppointment,
+  cancelAppointment ,
   getAppointmentsForPatient,
   getAppointmentsForDoctors,
   rescheduleAppointment,
@@ -20,7 +20,7 @@ router
 
 router
   .route("/delete/cancle-appointment/:appointmentId")
-  .delete(IsAuthenticatedUser, cancleAppointment);
+  .delete(IsAuthenticatedUser, cancelAppointment );
 
 router
   .route("/get/appointments-patient/:patientId")
