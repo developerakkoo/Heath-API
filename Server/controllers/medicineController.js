@@ -113,7 +113,6 @@ exports.createProductReview = tryCatch(async (req, res, next) => {
 
   const userProfile = await UserProfile.findOne({
     user: req.user._id,
-    
   }).populate("user", "phone"); // You can adjust fields as per requirement
 
   if (!userProfile) {
@@ -126,7 +125,7 @@ exports.createProductReview = tryCatch(async (req, res, next) => {
     comment,
   };
   const product = await Medicine.findById(productId);
-  if(!product){
+  if (!product) {
     return next(new ErrorHandler("Product Not Found", 404));
   }
   const isReviewed = product.reviews.find(
@@ -158,5 +157,104 @@ exports.createProductReview = tryCatch(async (req, res, next) => {
     name: userProfile.personalInformation.fullName,
     userId: req.user._id,
     phone: userProfile.user.phone,
+  });
+});
+
+// Get All Reviews of a product..
+exports.getProductsReview = tryCatch(async (req, res, next) => {
+  const product = await Medicine.findById(req.query.id);
+  if (!product) {
+    return next(new ErrorHandler("Product not found", 404));
+  }
+  res.status(200).json({
+    reviews: product.reviews,
+  });
+});
+
+// Delete product review..
+exports.deleteProductReview = tryCatch(async (req, res, next) => {
+  const { productID, id } = req.query;
+
+  // Ensure the user is logged in
+  if (!req.user) {
+    return next(
+      new ErrorHandler("You must be logged in to to delete review", 401)
+    );
+  }
+
+  const product = await Medicine.findById(productID);
+  if (!product) {
+    return next(new ErrorHandler("Product not found", 404));
+  }
+
+  // Find the review to delete
+  const review = product.reviews.find(
+    (rev) => rev._id.toString() === id.toString()
+  );
+  if (!review) {
+    return next(new ErrorHandler("Review not found", 404));
+  }
+
+  // Check if the logged-in user is the owner of the review
+  if (review.user.toString() !== req.user.id) {
+    return next(
+      new ErrorHandler("You are not authorized to delete this review", 403)
+    );
+  }
+
+  // Filter out the review and update the product
+  const reviews = product.reviews.filter(
+    (rev) => rev._id.toString() !== id.toString()
+  );
+  const numOfReviews = reviews.length;
+  const avg = reviews.reduce((acc, rev) => acc + rev.rating, 0);
+  const ratings = numOfReviews > 0 ? avg / numOfReviews : 0;
+
+  await Medicine.findByIdAndUpdate(
+    productID,
+    { reviews, ratings, numOfReviews },
+    { new: true, runValidators: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Review Deleted Successfully",
+  });
+});
+
+// Product Like and Unlike..
+exports.ProductLike = tryCatch(async (req, res, next) => {
+  const { productId } = req.body;
+
+  const product = await Medicine.findById(productId);
+  if (!product) {
+    return next(new ErrorHandler("Product Not Found", 404));
+  }
+
+  // Check if the user has already liked the product
+  const isLiked = product.likes.some(
+    (like) => like.toString() === req.user._id.toString()
+  );
+
+  if (isLiked) {
+    // If already liked, unlike the product
+    product.likes = product.likes.filter(
+      (like) => like.toString() !== req.user._id.toString()
+    );
+    product.likeCount = product.likes.length;
+  } else {
+    // Otherwise, like the product
+    product.likes.push(req.user._id);
+    product.likeCount = product.likes.length;
+  }
+
+  await product.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    success: true,
+    message: isLiked
+      ? "Product unliked successfully"
+      : "Product liked successfully",
+    likeCount: product.likeCount,
   });
 });

@@ -7,6 +7,9 @@ const {
   updateProduct,
   deleteProduct,
   createProductReview,
+  getProductsReview,
+  deleteProductReview,
+  ProductLike,
 } = require("../controllers/medicineController");
 const router = express.Router();
 
@@ -18,6 +21,8 @@ router.route("/delete/delete-product/:id").delete(deleteProduct);
 
 
 router.route("/put/review-product").put(IsAuthenticatedUser , createProductReview);
-
+router.route("/get/product-review").get(getProductsReview);
+router.route("/delete/product-review").delete(IsAuthenticatedUser, deleteProductReview);
+router.route("/post/like-unlike").post(IsAuthenticatedUser, ProductLike);
 
 module.exports = router;
