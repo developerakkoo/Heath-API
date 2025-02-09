@@ -15,24 +15,15 @@ exports.doctorRegister = tryCatch(async (req, res, next) => {
     experience,
     about,
     // available,
+    latitude,
+    longitude,
     fees,
     durations,
     // slots_booked = [],
   } = req.body;
 
-  // let imagePath = '';
-  // if (req.file) {
-  //   imagePath = `/uploads/${req.file.filename}`; // Construct the path to the uploaded file
-  // } else {
-  //   return res.status(400).json({
-  //     success: false,
-  //     message: 'Profile picture is required.',
-  //   });
-  // }
-
   const doctor = await Doctors.create({
     name,
-    // image:imagePath,
     image,
     speciality,
     education,
@@ -40,6 +31,10 @@ exports.doctorRegister = tryCatch(async (req, res, next) => {
     about,
     // available,
     fees,
+    location: {
+      type: 'Point',
+      coordinates: [longitude, latitude],
+    },
     durations,
     // slots_booked,
   });
@@ -55,7 +50,11 @@ exports.createAvailableSlots = tryCatch(async (req, res, next) => {
   const { doctorId, availableSlots } = req.body;
 
   // Validate input
-  if (!doctorId || !Array.isArray(availableSlots) || availableSlots.length === 0) {
+  if (
+    !doctorId ||
+    !Array.isArray(availableSlots) ||
+    availableSlots.length === 0
+  ) {
     return next(
       new ErrorHandler("doctorId and availableSlots are required.", 400)
     );
@@ -272,5 +271,3 @@ exports.deleteReview = tryCatch(async (req, res, next) => {
     message: "Review Deleted Successfully",
   });
 });
-
-

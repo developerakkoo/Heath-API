@@ -30,7 +30,13 @@ const appointment = require("./routes/appointmentRoutes");
 app.use("/api/v1", appointment);
 
 const medicines = require("./routes/medicinRoutes.js");
-app.use("/api/v1", medicines)
+app.use("/api/v1", medicines);
+
+const order = require("./routes/orderRoutes.js");
+app.use("/api/v1", order);
+
+const addToCart = require("./routes/addToCartRoutes.js");
+app.use("/api/v1", addToCart);
 
 app.use(errorMiddleware);
 module.exports = app;

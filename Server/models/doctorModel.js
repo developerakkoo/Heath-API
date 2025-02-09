@@ -24,6 +24,17 @@ const doctorSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true,
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude]
+      required: true,
+    },
+  },
   available: {
     type: Boolean,
     default: true,
@@ -109,4 +120,10 @@ const doctorSchema = new mongoose.Schema({
   },
 });
 
+
+doctorSchema.index({
+  location:'2dsphere'
+})
+
 module.exports = mongoose.model("Doctor", doctorSchema);
+
