@@ -38,5 +38,8 @@ app.use("/api/v1", order);
 const addToCart = require("./routes/addToCartRoutes.js");
 app.use("/api/v1", addToCart);
 
+const agroTokenGenerate = require("./routes/agoraRoutes.js");
+app.use("/api/v1", agroTokenGenerate);
+
 app.use(errorMiddleware);
 module.exports = app;

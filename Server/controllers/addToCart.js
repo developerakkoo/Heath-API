@@ -54,6 +54,7 @@ exports.addToCart = tryCatch(async (req, res, next) => {
   });
 });
 
+// increase or decrease product quantity into the cart..
 exports.updateProductQuantity = tryCatch(async (req, res, next) => {
   const { productId, action } = req.body;
 
