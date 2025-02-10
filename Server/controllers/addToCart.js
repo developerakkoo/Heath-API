@@ -54,20 +54,57 @@ exports.addToCart = tryCatch(async (req, res, next) => {
   });
 });
 
-exports.updateProductQuantity = tryCatch(async(req,res,next)=>{
-   const {productId,action} = req.body;
+exports.updateProductQuantity = tryCatch(async (req, res, next) => {
+  const { productId, action } = req.body;
 
-   if(!req.user || !req.user._id){
-    return next(new ErrorHandler("User is not authenticated",401));
-   }
-   const userId = req.user._id;
+  if (!req.user || !req.user._id) {
+    return next(new ErrorHandler("User is not authenticated", 401));
+  }
+  const userId = req.user._id;
 
-   let cart =await Cart.findOne({user:userId})
-   if(!cart)
-   {
-    return next(new ErrorHandler("cart not dound",404));
-   }
+  let cart = await Cart.findOne({ user: userId });
+  if (!cart) {
+    return next(new ErrorHandler("cart not dound", 404));
+  }
+  const cartItem = cart.cartItems.find((item) => item.product.equals(productId));
+    if (!cartItem) {
+        return next(new ErrorHandler("Product not found in cart", 404));
+    }
 
-})
+  const product = await Medicine.findById(productId);
+  if (!product) {
+    return next(new ErrorHandler("Product Not Found", 404));
+  }
+  if (action === "increase") {
+    if (product.stock <= cartItem.quantity) {
+      return next(
+        new ErrorHandler(`Only ${product.stock} units available`, 400)
+      );
+    }
+    cartItem.quantity += 1;
+  } else if (action === "decrese") {
+    if (cartItem.quantity > 1) {
+      cartItem.quantity -= 1;
+    } else {
+      // if quantity is 1 and user trying to decrease item from cart the product remove from cart automatically..
+      cart.cartItems = cart.cartItems.filter(
+        (item) => !item.product.equals(productId)
+      );
+    }
+  } else {
+    return next(
+      new ErrorHandler("Invalid action. Use 'increase' or 'decrease'", 400)
+    );
+  }
+  await cart.save();
 
-
+  const updatedCart = await Cart.findById(cart.id).populate(
+    "cartItems.product",
+    "name price stock"
+  );
+  res.status(200).json({
+    success: true,
+    message: `product quentity ${action} successfully..`,
+    cart: updatedCart,
+  });
+});
