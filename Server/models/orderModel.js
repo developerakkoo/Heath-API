@@ -42,10 +42,10 @@ const orderSchema = new mongoose.Schema({
     },
   ],
   user: {
-    type: mongoose.Schema.ObjectId,
-    ref: "UserProfile",
-    required: true,
-  },
+  type: mongoose.Schema.ObjectId,
+  ref: "UserProfile",
+  required: true,
+},
   paymentInfo: {
     id: {
       type: String,

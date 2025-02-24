@@ -9,7 +9,7 @@ const {
 } = require("../controllers/userProfileController");
 const router = express.Router();
 
-router.route("/post/register").post( registerUser);
+router.route("/post/register").post(IsAuthenticatedUser, registerUser);
 router.route("/get/user-profile/:id").get(IsAuthenticatedUser, getUserProfile);
 router.route("/get/users").get(IsAuthenticatedUser, getAllUserProfiles);
 router

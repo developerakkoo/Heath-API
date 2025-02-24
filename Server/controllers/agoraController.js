@@ -23,7 +23,7 @@ exports.agoraTokenGenerate = tryCatch(async (req, res, next) => {
     const privilegeExpireTime = currentTime + expireTime;
   
     let token;
-    if (tokenType === "rtc") { // ✅ Fixed the condition
+    if (tokenType === "rtc") { 
       token = RtcTokenBuilder.buildTokenWithUid(
         APP_ID,
         APP_CERTIFICATE,

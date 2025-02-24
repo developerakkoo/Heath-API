@@ -342,7 +342,9 @@ exports.manageDailyAppointments = tryCatch( async (req, res, next) => {
 // To check if a doctor is available for a specific date or time slot..
 exports.checkDoctorAvailability = tryCatch(async (req, res, next) => {
   const { doctorId } = req.params; // Get doctorId from URL params
-  const { date, timeSlots } = req.query;
+  // const { date, timeSlots } = req.query;
+  const { date, timeSlots } = req.body;
+
 
   // Validate required inputs
   if (!doctorId || !date || !timeSlots) {
@@ -396,7 +398,9 @@ exports.checkDoctorAvailability = tryCatch(async (req, res, next) => {
 
 // check doctors available for a specific date or time slot..
 exports.checkDoctorsAvailability = tryCatch(async (req, res, next) => {
-  const { date, timeSlots } = req.query;
+  // const { date, timeSlots } = req.query;
+  const { date, timeSlots } = req.body;
+
 
   // Validate required inputs
   if (!date || !timeSlots) {

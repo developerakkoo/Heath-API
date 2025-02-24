@@ -22,30 +22,31 @@ exports.newOrder = tryCatch(async (req, res, next) => {
     return next(new ErrorHandler("Order items are required", 400));
   }
 
-  // Fetch categories and decrease stock
-  const enrichedOrderItems = await Promise.all(
-    orderItems.map(async (item) => {
-      const product = await Medicine.findById(item.product);
-      if (!product) return next(new ErrorHandler(`Product not found: ${item.product}`, 404));
+  let enrichedOrderItems = [];
 
-      // Check stock availability
-      if (product.stock < item.quantity) {
-        return next(new ErrorHandler(`Insufficient stock for ${product.name}`, 400));
-      }
+  for (const item of orderItems) {
+    const product = await Medicine.findById(item.product);
+    if (!product) {
+      return next(new ErrorHandler(`Product not found: ${item.product}`, 404));
+    }
 
-      // Reduce stock
-      product.stock -= item.quantity;
-      await product.save({ validateBeforeSave: false });
+    // Check stock availability
+    if (product.stock < item.quantity) {
+      return next(new ErrorHandler(`Insufficient stock for ${product.name}`, 400));
+    }
 
-      return { ...item, category: product.category };
-    })
-  );
+    // Reduce stock
+    product.stock -= item.quantity;
+    await product.save({ validateBeforeSave: false });
+
+    enrichedOrderItems.push({ ...item, category: product.category });
+  }
 
   // Validate delivery option
-  const product = await Medicine.findById(orderItems[0].product);
-  if (!product) return next(new ErrorHandler("Invalid product for delivery option", 400));
+  const firstProduct = await Medicine.findById(orderItems[0].product);
+  if (!firstProduct) return next(new ErrorHandler("Invalid product for delivery option", 400));
 
-  const selectedDeliveryOption = product.deliveryOptions?.[deliveryOption];
+  const selectedDeliveryOption = firstProduct.deliveryOptions?.[deliveryOption];
   if (!selectedDeliveryOption) {
     return next(new ErrorHandler("Invalid delivery option", 400));
   }
@@ -67,7 +68,7 @@ exports.newOrder = tryCatch(async (req, res, next) => {
     paidAt: Date.now(),
   });
 
-  res.status(201).json({
+  return res.status(201).json({
     success: true,
     message: "Order placed successfully!",
     order,
@@ -142,7 +143,15 @@ exports.getSingleOrder = tryCatch(async (req, res, next) => {
 
 // Get logged in user orders..
 exports.myOrders = tryCatch(async (req, res, next) => {
-  const orders = await Order.find({ user: req.user._id });
+  const userProfile = await UserProfile.findOne({ user: req.user._id });
+
+  if (!userProfile) {
+    return next(new ErrorHandler("User profile not found", 404));
+  }
+
+  // Now fetch orders using UserProfile ID
+  const orders = await Order.find({ user: userProfile._id });
+
   const totalAmount = orders.reduce((acc, order) => acc + order.totalPrice, 0);
   res.status(200).json({
     success: true,
@@ -331,20 +340,24 @@ exports.getOrderHistoryByCategory = tryCatch(async (req, res, next) => {
 
   if (!year || !month) {
     return next(
-      new ErrorHandler(
-        "Year and month are required to fetch order history",
-        400
-      )
+      new ErrorHandler("Year and month are required to fetch order history", 400)
     );
   }
 
-  // Convert month to 0-indexed (i.e., January is 0, December is 11)
+  // Convert month to 0-indexed format
   const startDate = new Date(year, month - 1, 1); // Start of the month
-  const endDate = new Date(year, month, 0); // End of the month
+  const endDate = new Date(year, month, 1); // Start of the next month
 
-  // Query orders for the selected month and year
+  // Get the corresponding UserProfile ID for this PhoneUser
+  const userProfile = await UserProfile.findOne({ user: req.user._id });
+
+  if (!userProfile) {
+    return next(new ErrorHandler("User profile not found", 404));
+  }
+
+ // Fetch orders using the correct user ID
   const orders = await Order.find({
-    user: req.user._id,
+    user: userProfile._id,
     createdAt: {
       $gte: startDate,
       $lt: endDate,
@@ -352,9 +365,7 @@ exports.getOrderHistoryByCategory = tryCatch(async (req, res, next) => {
   });
 
   if (!orders.length) {
-    return res
-      .status(404)
-      .json({ message: `No orders found for ${month}/${year}` });
+    return res.status(404).json({ message: `No orders found for ${month}/${year}` });
   }
 
   const categorySummary = {};
@@ -370,17 +381,18 @@ exports.getOrderHistoryByCategory = tryCatch(async (req, res, next) => {
     }
 
     order.orderItems.forEach((item) => {
+      if (!item || !item.category) return; // Skip null or undefined items
       const { category, price, quantity } = item;
 
-      if (!categorySummary[category]) {
-        categorySummary[category] = {
+      if (!categorySummary[category.main]) {
+        categorySummary[category.main] = {
           totalAmount: 0,
           totalCount: 0,
         };
       }
 
-      categorySummary[category].totalAmount += price * quantity;
-      categorySummary[category].totalCount += quantity;
+      categorySummary[category.main].totalAmount += price * quantity;
+      categorySummary[category.main].totalCount += quantity;
     });
 
     // Accumulate total price
@@ -391,8 +403,7 @@ exports.getOrderHistoryByCategory = tryCatch(async (req, res, next) => {
     success: true,
     categories: categorySummary,
     orderStatusSummary: {
-      Delivered: orders.filter((order) => order.orderStatus === "Delivered")
-        .length,
+      Delivered: orders.filter((order) => order.orderStatus === "Delivered").length,
       Processing: totalProcessingOrders,
       totalOrders: totalOrders,
     },
