@@ -2,6 +2,7 @@ const Medicine = require("../models/medicineModel");
 const ErrorHandler = require("../utils/ErrorHandling");
 const tryCatch = require("../middleware/tryCatch");
 const Cart = require("../models/cartModel");
+const mongoose = require("mongoose");
 
 // Add Product into cart..
 exports.addToCart = tryCatch(async (req, res, next) => {
@@ -137,29 +138,50 @@ exports.getMyCart = tryCatch(async (req, res, next) => {
 
 // Remove Product From Cart..
 exports.deleteProductPromcart = tryCatch(async (req, res, next) => {
-  const { productId } = req.params;
+  const { id: productId } = req.params;
+
   if (!req.user || !req.user._id) {
-    return next(new ErrorHandler("User is not authenticated", 404));
+    return next(new ErrorHandler("User is not authenticated", 401));
   }
+
   const userID = req.user._id;
-  let cart = await Cart.fintOne({ user: userID });
+  let cart = await Cart.findOne({ user: userID });
+
   if (!cart) {
-    return next(new ErrorHandler("cart is not found", 404));
+    return next(new ErrorHandler("Cart not found", 404));
   }
-  const initialLength = cart.cartItem.length;
-  cart.cartItem = cart.cartItem.filter(
+
+  console.log("Product IDs in cart:", cart.cartItems.map(item => item.product.toString()));
+console.log("Product to remove:", productId);
+
+
+  // Check if the product exists in the cart
+  const initialLength = cart.cartItems.length;
+  cart.cartItems = cart.cartItems.filter(
     (item) => !item.product.equals(productId)
   );
+
   if (cart.cartItems.length === initialLength) {
-    return next(new ErrorHandler("Product Not found in the cart", 404));
+    return next(new ErrorHandler("Product not found in the cart", 404));
   }
-  cart.totalPrice = cart.cartItem.reduce((acc,item) =>{
-    return acc + item.price * item*quantity;
-  },0)
+
+  // Recalculate total price after removing the product
+  cart.totalPrice = cart.cartItems.reduce((acc, item) => {
+    return acc + item.price * item.quantity;
+  }, 0);
+
   await cart.save();
+
+  // Populate product details
+  const updatedCart = await Cart.findById(cart._id).populate(
+    "cartItems.product",
+    "name price stock"
+  );
+
   res.status(200).json({
-    success:true,
-    message:"Product removed from cart sucessfully",
-    cart,
-  })
+    success: true,
+    message: "Product removed from cart successfully",
+    cart: updatedCart,
+  });
 });
+

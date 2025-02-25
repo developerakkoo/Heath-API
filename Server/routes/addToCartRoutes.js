@@ -4,6 +4,7 @@ const {
   addToCart,
   updateProductQuantity,
   getMyCart,
+  deleteProductPromcart,
 } = require("../controllers/addToCart");
 const router = express.Router();
 
@@ -16,5 +17,7 @@ router
   .put(IsAuthenticatedUser, updateProductQuantity);
 
 router.route("/get/my-cart",).get(IsAuthenticatedUser,getMyCart)
+
+router.route("/delete/remove-product/:id").delete(IsAuthenticatedUser,deleteProductPromcart)
 
 module.exports = router;
