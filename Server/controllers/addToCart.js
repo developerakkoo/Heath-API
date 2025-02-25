@@ -67,10 +67,12 @@ exports.updateProductQuantity = tryCatch(async (req, res, next) => {
   if (!cart) {
     return next(new ErrorHandler("cart not dound", 404));
   }
-  const cartItem = cart.cartItems.find((item) => item.product.equals(productId));
-    if (!cartItem) {
-        return next(new ErrorHandler("Product not found in cart", 404));
-    }
+  const cartItem = cart.cartItems.find((item) =>
+    item.product.equals(productId)
+  );
+  if (!cartItem) {
+    return next(new ErrorHandler("Product not found in cart", 404));
+  }
 
   const product = await Medicine.findById(productId);
   if (!product) {
@@ -108,4 +110,56 @@ exports.updateProductQuantity = tryCatch(async (req, res, next) => {
     message: `product quentity ${action} successfully..`,
     cart: updatedCart,
   });
+});
+
+// GetMy Cart..
+exports.getMyCart = tryCatch(async (req, res, next) => {
+  if (!req.user || !req.user._id) {
+    return next(new ErrorHandler("User is not authenticated", 401));
+  }
+  const userID = req.user._id;
+  const cart = await Cart.findOne({ user: userID }).populate(
+    "cartItems.product",
+    "name price stock images"
+  );
+  if (!cart || cart.cartItems.length === 0) {
+    return res.status(200).json({
+      success: true,
+      message: "Your cart is empty",
+      cart: [],
+    });
+  }
+  res.status(200).json({
+    success: true,
+    cart,
+  });
+});
+
+// Remove Product From Cart..
+exports.deleteProductPromcart = tryCatch(async (req, res, next) => {
+  const { productId } = req.params;
+  if (!req.user || !req.user._id) {
+    return next(new ErrorHandler("User is not authenticated", 404));
+  }
+  const userID = req.user._id;
+  let cart = await Cart.fintOne({ user: userID });
+  if (!cart) {
+    return next(new ErrorHandler("cart is not found", 404));
+  }
+  const initialLength = cart.cartItem.length;
+  cart.cartItem = cart.cartItem.filter(
+    (item) => !item.product.equals(productId)
+  );
+  if (cart.cartItems.length === initialLength) {
+    return next(new ErrorHandler("Product Not found in the cart", 404));
+  }
+  cart.totalPrice = cart.cartItem.reduce((acc,item) =>{
+    return acc + item.price * item*quantity;
+  },0)
+  await cart.save();
+  res.status(200).json({
+    success:true,
+    message:"Product removed from cart sucessfully",
+    cart,
+  })
 });
