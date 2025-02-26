@@ -151,9 +151,11 @@ exports.deleteProductPromcart = tryCatch(async (req, res, next) => {
     return next(new ErrorHandler("Cart not found", 404));
   }
 
-  console.log("Product IDs in cart:", cart.cartItems.map(item => item.product.toString()));
-console.log("Product to remove:", productId);
-
+  console.log(
+    "Product IDs in cart:",
+    cart.cartItems.map((item) => item.product.toString())
+  );
+  console.log("Product to remove:", productId);
 
   // Check if the product exists in the cart
   const initialLength = cart.cartItems.length;
@@ -163,6 +165,14 @@ console.log("Product to remove:", productId);
 
   if (cart.cartItems.length === initialLength) {
     return next(new ErrorHandler("Product not found in the cart", 404));
+  }
+
+  if (cart.cartItems.length === 0) {
+    await Cart.findByIdAndDelete(cart._id);
+    return res.status(200).json({
+      success: true,
+      message: "Cart has been removed",
+    });
   }
 
   // Recalculate total price after removing the product
@@ -185,3 +195,21 @@ console.log("Product to remove:", productId);
   });
 });
 
+// clear Cart..
+exports.clearCart = tryCatch(async (req, res, next) => {
+  if (!req.user || !req.user._id) {
+    return next(new ErrorHandler("User is not authenticated", 401));
+  }
+  const userID = req.user._id;
+  const cart = await Cart.findOneAndDelete({ user: userID });
+  if (!cart) {
+    return next(new ErrorHandler("Cart not found", 404));
+  }
+  res.status(200).json({
+    success:true,
+    message:"cart cleared Successfully..."
+  })
+});
+
+
+// 
