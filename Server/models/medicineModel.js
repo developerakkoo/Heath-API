@@ -69,10 +69,14 @@ const productSchema = new mongoose.Schema({
     },
   ],
 
-  images: {
+  // images: {
+  //   type: String,
+  //   required: true,
+  // },
+  images:[ {
     type: String,
     required: true,
-  },
+  }],
   category: {
     main: {
       type: String,

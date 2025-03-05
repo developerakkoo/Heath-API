@@ -258,3 +258,50 @@ exports.ProductLike = tryCatch(async (req, res, next) => {
     likeCount: product.likeCount,
   });
 });
+
+exports.createProduct = tryCatch(async (req, res, next) => {
+  const requiredFields = [
+    "name",
+    "price",
+    "discount",
+    "description",
+    "category.main",
+    "category.sub",
+    "deliveryOptions.standard.price",
+    "deliveryOptions.standard.time",
+    "deliveryOptions.express.price",
+    "deliveryOptions.express.time",
+    "selectedDelivery",
+    "stock"
+  ];
+
+  
+  for (const field of requiredFields) {
+    if (!req.body[field]) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required field: ${field}`,
+      });
+    }
+  }
+
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ success: false, message: "At least one image is required" });
+  }
+  // Handle file upload (store the file path in the database)
+  const imagePaths = req.files.map(file => file.path); // Stores multiple image paths
+
+
+  if (!imagePaths) {
+    return res.status(400).json({ success: false, message: "Image is required" });
+  }
+
+  const productData = { ...req.body, images: imagePaths };
+
+  const product = await Medicine.create(productData);
+
+  res.status(201).json({
+    success: true,
+    product,
+  });
+});

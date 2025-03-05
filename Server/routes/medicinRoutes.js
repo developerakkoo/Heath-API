@@ -11,6 +11,7 @@ const {
   deleteProductReview,
   ProductLike,
 } = require("../controllers/medicineController");
+const upload = require("../utils/multer");
 const router = express.Router();
 
 router.route("/post/add-product").post(createProduct);
@@ -19,6 +20,7 @@ router.route("/get/product/:id").get(getProduct);
 router.route("/put/update-product/:id").put(updateProduct);
 router.route("/delete/delete-product/:id").delete(deleteProduct);
 
+router.route("/post/add-product").post(upload.array("images", 10),createProduct);
 
 router.route("/put/review-product").put(IsAuthenticatedUser , createProductReview);
 router.route("/get/product-review").get(getProductsReview);
