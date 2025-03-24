@@ -32,6 +32,22 @@ const phoneUserSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  loginHistory: [{
+    loginTime: Date,
+    logoutTime: Date,
+    sessionDuration: {
+      type: {
+        minutes: Number,
+        seconds: Number
+      },
+      required: false
+    }
+  }],
+  lastActive:Date,
+  isActive:{
+    type:Boolean,
+    default:false,
+  },
 });
 
 // JWT Token Generate
